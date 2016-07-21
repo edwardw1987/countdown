@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resource class="wxMenuBar">
+  <object class="wxFrame" name="MainFrame">
+    <object class="wxPanel" name="MainPanel">
+      <object class="wxGridSizer">
+        <cols>5</cols>
+        <rows>2</rows>
+        <object class="sizeritem">
+          <object class="wxStaticText" name="boss">
+            <label>LABEL</label>
+          </object>
+        </object>
+        <object class="sizeritem">
+          <object class="wxStaticText" name="deadtime">
+            <label>LABEL</label>
+          </object>
+        </object>
+        <object class="sizeritem">
+          <object class="wxStaticText" name="countdown">
+            <label>LABEL</label>
+          </object>
+        </object>
+        <object class="sizeritem">
+          <object class="wxStaticText" name="refreshtime">
+            <label>LABEL</label>
+          </object>
+        </object>
+        <object class="sizeritem">
+          <object class="wxToggleButton" name="toggleCountDown"/>
+        </object>
+      </object>
+    </object>
+    <size>100,100</size>
+    <title>hello</title>
+    <centered>1</centered>
+  </object>
+  <object class="wxMenuBar" name="MenuBar">
+    <object class="wxMenu" name="menu0">
+      <label>选项</label>
+    </object>
+  </object>
+</resource>

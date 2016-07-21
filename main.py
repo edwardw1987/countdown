@@ -1,19 +1,19 @@
-# -*- coding: utf-8 -*-
-# @Author: edward
-# @Date:   2016-07-20 23:37:23
-# @Last Modified by:   edward
-# @Last Modified time: 2016-07-20 23:45:14
 import wx
-import ui
+import TestFrame2
+import Library
 
-class MainApp(wx.App):
+modules ={u'Library': [0, '', u'Library.py'], u'TestFrame2': [0, '', u'TestFrame2.py']}
+
+class TestApp(wx.App):
     def OnInit(self):
-        fr = ui.Frame(None)
-        fr.Center()
-        fr.Show()
+        self.main = TestFrame2.TestFrame(None)
+        self.main.Show()
+        self.SetTopWindow(self.main)
         return True
+
 def main():
-    app = MainApp()
-    app.MainLoop()
+    application = TestApp(0)
+    application.MainLoop()
+
 if __name__ == '__main__':
     main()
