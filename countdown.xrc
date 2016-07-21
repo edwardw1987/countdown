@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<resource class="wxMenuBar">
+<resource class="wxStaticText">
   <object class="wxFrame" name="MainFrame">
     <object class="wxPanel" name="MainPanel">
       <object class="wxGridSizer">
@@ -7,36 +7,123 @@
         <rows>2</rows>
         <object class="sizeritem">
           <object class="wxStaticText" name="boss">
-            <label>LABEL</label>
+            <label>BOSS名称</label>
+            <style>wxALIGN_CENTRE</style>
           </object>
+          <option>2</option>
         </object>
         <object class="sizeritem">
           <object class="wxStaticText" name="deadtime">
-            <label>LABEL</label>
+            <label>死亡时间</label>
+            <style>wxALIGN_CENTRE</style>
           </object>
         </object>
         <object class="sizeritem">
           <object class="wxStaticText" name="countdown">
-            <label>LABEL</label>
+            <label>倒计时</label>
+            <style>wxALIGN_CENTRE</style>
           </object>
         </object>
         <object class="sizeritem">
           <object class="wxStaticText" name="refreshtime">
+            <label>刷新时间</label>
+            <style>wxALIGN_CENTRE</style>
+          </object>
+        </object>
+        
+        <object class="sizeritem">
+          <object class="wxStaticText">
             <label>LABEL</label>
           </object>
         </object>
         <object class="sizeritem">
-          <object class="wxToggleButton" name="toggleCountDown"/>
+          <object class="wxListCtrl" name="bossList">
+            <style>wxLC_LIST</style>
+          </object>
+          <option>8</option>
+          <flag>wxEXPAND</flag>
+        </object>
+        <object class="sizeritem">
+          <object class="wxListCtrl" name="deadtimeList">
+            <style>wxLC_LIST</style>
+          </object>
+        </object>
+        <object class="sizeritem">
+          <object class="wxListCtrl" name="countdownList">
+            <style>wxLC_LIST</style>
+          </object>
+        </object>
+        <object class="sizeritem">
+          <object class="wxListCtrl" name="refreshtimeList">
+            <style>wxLC_LIST</style>
+          </object>
         </object>
       </object>
     </object>
-    <size>100,100</size>
-    <title>hello</title>
+    <size>640,480</size>
+    <title>RatHead CountDown</title>
     <centered>1</centered>
   </object>
   <object class="wxMenuBar" name="MenuBar">
-    <object class="wxMenu" name="menu0">
-      <label>选项</label>
+    <object class="wxMenu">
+      <object class="wxMenuItem" name="AddCountDown">
+        <label>添加倒计时</label>
+        <accel>CTRL+N</accel>
+      </object>
+      <label>选项(&amp;O)</label>
     </object>
+  </object>
+  <object class="wxDialog" name="AddCountDownDialog">
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <object class="wxFlexGridSizer">
+          <object class="sizeritem">
+            <object class="wxStaticText">
+              <label>BOSS名称</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <object class="wxTextCtrl" name="NewBoss"/>
+          </object>
+          <object class="sizeritem">
+            <object class="wxStaticText">
+              <label>BOSS刷新（分）</label>
+            </object>
+            <option>0</option>
+          </object>
+          <object class="sizeritem">
+            <object class="wxSpinCtrl">
+              <size>50,25</size>
+            </object>
+            <flag>wxALIGN_CENTRE</flag>
+          </object>
+          <object class="sizeritem">
+            <object class="wxStaticText">
+              <label>倒计时（秒）</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <object class="wxSpinCtrl">
+              <size>50,25</size>
+            </object>
+            <flag>wxALIGN_CENTRE</flag>
+          </object>
+          <object class="sizeritem">
+            <object class="wxButton">
+              <label>添加</label>
+            </object>
+          </object>
+          <cols>2</cols>
+          <rows>5</rows>
+          <vgap>5</vgap>
+        </object>
+        <flag>wxALL</flag>
+        <border>5</border>
+      </object>
+    </object>
+    <size>800,600</size>
+    <title>添加倒计时</title>
+    <centered>1</centered>
   </object>
 </resource>
