@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 12:30:24
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-22 16:59:40
+# @Last Modified time: 2016-07-22 23:29:55
 import wx
 
 
@@ -38,7 +38,7 @@ def create_menubar(frame, data):
                 pass
             elif act == 2: #radio
                 pass
-            elif act == 3: #seprator
+            elif act == -1: #seprator
                 m.AppendSeparator()
             if mi is not None:
                 frame.Bind(wx.EVT_MENU, ehandler, mi)
@@ -58,6 +58,7 @@ class After(object):
     def _popArgs(self, **kw):
         _keys = {
             'icon',
+            'fgcolor',
         }
         for k in _keys:
             v = kw.pop(k, None)
@@ -67,6 +68,8 @@ class After(object):
     def _doAfterInit(self):
         icon = getattr(self, 'icon', None)
         if icon: self.SetIcon(wx.Icon(icon))
+        fgcolor = getattr(self, 'fgcolor', None)
+        if fgcolor: self.SetForegroundColour(fgcolor)
         self.DoAfterInit()
 
     def DoAfterInit(self):

@@ -2,12 +2,12 @@
 # @Author: edward
 # @Date:   2016-07-21 15:52:58
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-22 16:20:45
+# @Last Modified time: 2016-07-22 23:21:38
 import wx
 import ui
 
 class App(wx.App):
-    def OnInit(self):
+    def OnInit(self):       
         fr = ui.Frame(
             None,
             title="RatHead CountDown",
