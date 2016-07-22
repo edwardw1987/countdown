@@ -1,66 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<resource class="wxStaticText">
+<resource>
   <object class="wxFrame" name="MainFrame">
     <object class="wxPanel" name="MainPanel">
-      <object class="wxGridSizer">
-        <cols>5</cols>
-        <rows>2</rows>
-        <object class="sizeritem">
-          <object class="wxStaticText" name="boss">
-            <label>BOSS名称</label>
-            <style>wxALIGN_CENTRE</style>
-          </object>
-          <option>2</option>
-        </object>
-        <object class="sizeritem">
-          <object class="wxStaticText" name="deadtime">
-            <label>死亡时间</label>
-            <style>wxALIGN_CENTRE</style>
-          </object>
-        </object>
-        <object class="sizeritem">
-          <object class="wxStaticText" name="countdown">
-            <label>倒计时</label>
-            <style>wxALIGN_CENTRE</style>
-          </object>
-        </object>
-        <object class="sizeritem">
-          <object class="wxStaticText" name="refreshtime">
-            <label>刷新时间</label>
-            <style>wxALIGN_CENTRE</style>
-          </object>
-        </object>
-        
-        <object class="sizeritem">
-          <object class="wxStaticText">
-            <label>LABEL</label>
-          </object>
-        </object>
-        <object class="sizeritem">
-          <object class="wxListCtrl" name="bossList">
-            <style>wxLC_LIST</style>
-          </object>
-          <option>8</option>
-          <flag>wxEXPAND</flag>
-        </object>
-        <object class="sizeritem">
-          <object class="wxListCtrl" name="deadtimeList">
-            <style>wxLC_LIST</style>
-          </object>
-        </object>
-        <object class="sizeritem">
-          <object class="wxListCtrl" name="countdownList">
-            <style>wxLC_LIST</style>
-          </object>
-        </object>
-        <object class="sizeritem">
-          <object class="wxListCtrl" name="refreshtimeList">
-            <style>wxLC_LIST</style>
-          </object>
-        </object>
+      <object class="wxListCtrl" name="ListCtrl">
+        <style>wxBORDER_SUNKEN|wxLC_REPORT</style>
       </object>
     </object>
-    <size>640,480</size>
     <title>RatHead CountDown</title>
     <centered>1</centered>
   </object>
@@ -70,7 +15,7 @@
         <label>添加倒计时</label>
         <accel>CTRL+N</accel>
       </object>
-      <label>选项(&amp;O)</label>
+      <label>操作(&amp;O)</label>
     </object>
   </object>
   <object class="wxDialog" name="AddCountDownDialog">
