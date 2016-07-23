@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-23 20:21:33
+# @Last Modified time: 2016-07-23 22:24:17
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -10,13 +10,24 @@ import db
 from tinydb.database import Element
 from collections import OrderedDict
 
+
 class Label(After, wx.StaticText):
     pass
 
+
 class ListCtrl(After, wx.ListCtrl):
     def DoAfterInit(self):
+        self._itemStates = {}
         self._eids = []
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.onRightClick)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onLeftDClick)
+
+    def ToggleItemState(self, index):
+        eid = self.GetEid(index)
+        self._itemStates[eid] = not self._itemStates.get(eid, 0)
+
+    def GetItemState(self, index):
+        return self._itemStates.get(self.GetEid(index), 0)
 
     def OnRightClick(self, e):
         raise NotImplementedError()
@@ -24,20 +35,62 @@ class ListCtrl(After, wx.ListCtrl):
     def SetEids(self, eids):
         self._eids = eids
 
+    def GetEid(self, pos):
+        eid = self._eids[-(pos + 1)]
+        return eid
+
     def AddEids(self, eid):
         self._eids.append(eid)
 
     def DelEidsByPos(self, pos):
         print pos, -(pos + 1)
-        eid = self._eids.pop(-(pos + 1) )
+        eid = self._eids.pop(-(pos + 1))
         db.delete([eid])
 
     def AdaptWidth(self, headings_num, proportions):
         num = sum(proportions)
         for i in range(headings_num):
-            w = self.GetParent().GetClientSize()[0]/float(num) 
+            w = self.GetParent().GetClientSize()[0] / float(num)
             w *= proportions[i]
             self.SetColumnWidth(i, w)
+
+    def onLeftDClick(self, e):
+        print 'onLeftDClick'
+
+        self._pos = e.GetIndex()
+        if self._pos < 0:
+            return
+        self.OnToggleStatus(e)
+
+    def onRightClick(self, e):
+        print 'onRightClick'
+        self._pos = e.GetIndex()
+        if self._pos < 0:
+            return
+        data = {
+            'rightClick': [
+                (u'停止', 'stop', 0, self.OnToggleStatus) if self.GetItemState(self._pos) else (
+                    u'启动', 'start', 0, self.OnToggleStatus),
+                (u'删除', 'del', 0, self.OnDel),
+                (u'修改', 'mod', 0, self.OnMod),
+            ]
+        }
+        for m, title in create_menu(self.GetParent(), data):
+            self.PopupMenu(m)
+            break
+
+    def OnDel(self, e):
+        self.DeleteItem(self._pos)
+        self.DelEidsByPos(self._pos)
+
+    def OnMod(self, e):
+        print 'OnMod'
+
+    def OnToggleStatus(self, e):
+        self.ToggleItemState(self._pos)
+        self.SetStringItem(
+            self._pos, 5, u'已启动' if self.GetItemState(self._pos) else u'已停止')
+
 
 class Dialog(After, wx.Dialog):
     def OnAdd(self):
@@ -120,35 +173,21 @@ class Frame(After, wx.Frame):
         for row in data_list:
             pos = self.LC.InsertStringItem(0, str(row.eid))
             # add values in the other columns on the same row
-            self.LC.SetStringItem(pos,1, row['boss'])
-            self.LC.SetStringItem(pos,4, str(row['refresh']))
+            self.LC.SetStringItem(pos, 1, row['boss'])
+            self.LC.SetStringItem(pos, 4, str(row['refresh']))
+            self.LC.SetStringItem(pos, 5, u'已停止')
 
     def _initListCtrl(self):
-        def _onRightClick(e):
-            self._pos = e.GetIndex()
-            print e.GetColumn()
-            data = {
-                'rightClick':[
-                        (u'删除', 'del', 0, self.OnDel),
-                        (u'修改', 'mod', 0, self.OnMod),
-                    ]
-                }
-            for m, title in create_menu(self, data):
-                self.LC.PopupMenu(m)
-                break
+        self.LC = ListCtrl(self,
+                           style=wx.LC_REPORT,
+                           headings=['ID', u'BOSS名称',
+                                     u'死亡时间', u'倒计时', '刷新时间', '状态'],
+                           columnFormat=wx.LIST_FORMAT_CENTER,
+                           fgcolor='#f40',
 
-            
-
-        self.LC = ListCtrl(self, 
-            style=wx.LC_REPORT,
-            headings=['ID',u'BOSS名称', u'死亡时间', u'倒计时', '刷新时间', '状态'],
-            columnFormat=wx.LIST_FORMAT_CENTER,
-            onRightClick=_onRightClick,
-            fgcolor='blue',
-
-        )
+                           )
         # ===============
-        self.LC.AdaptWidth(6, proportions = [0.5, 3, 2, 1, 2, 1.5]) 
+        self.LC.AdaptWidth(6, proportions=[0.5, 3, 2, 1, 2, 1.5])
         # ===============
         rows = db.all()
         self.AddRows(rows)
@@ -157,16 +196,15 @@ class Frame(After, wx.Frame):
 
     def _initMenuBar(self):
         _OD = OrderedDict()
-        
+
         _OD[u'操作(&O)'] = [
-                (u'添加倒计时\tCtrl+N', 'add', 0, self.OnAdd),
-                (None, '', -1, None),
-                (u'退出\tCtrl+Q', 'quit', 0, self.OnQuit),
-            ]
-        _OD[u'查看(&V)'] =[
-                (u'窗口置顶', 'top', 1, self.OnSwitchTop),
-            ]
-        
+            (u'添加倒计时\tCtrl+N', 'add', 0, self.OnAdd),
+            (None, '', -1, None),
+            (u'退出\tCtrl+Q', 'quit', 0, self.OnQuit),
+        ]
+        _OD[u'查看(&V)'] = [
+            (u'窗口置顶', 'top', 1, self.OnSwitchTop),
+        ]
 
         mb = create_menubar(self, _OD)
         # create item(normal, check, raido)
@@ -176,24 +214,20 @@ class Frame(After, wx.Frame):
         # final
         self.SetMenuBar(mb)
     # ==========
+
     def OnAdd(self, e):
         dlg = Dialog(self, title=u"添加倒计时", size=(240, 180))
         dlg.ShowModal()
 
-    def OnDel(self, e):
-        self.LC.DeleteItem(self._pos)
-        self.LC.DelEidsByPos(self._pos)
-    def OnMod(self, e):
-        print 'OnMod'
-
     def OnSwitchTop(self, e):
         if e.IsChecked():
-            self.SetWindowStyle(self.GetWindowStyle()|wx.STAY_ON_TOP)
+            self.SetWindowStyle(self.GetWindowStyle() | wx.STAY_ON_TOP)
         else:
-            self.SetWindowStyle(self.GetWindowStyle()^wx.STAY_ON_TOP)
+            self.SetWindowStyle(self.GetWindowStyle() ^ wx.STAY_ON_TOP)
+
     def OnQuit(self, e):
         self.Destroy()
 
     def OnResize(self, e):
-        self.LC.AdaptWidth(6, proportions = [0.5, 3, 2, 1, 2, 1.5, ])
+        self.LC.AdaptWidth(6, proportions=[0.5, 3, 2, 1, 2, 1.5, ])
         self.LC.SetClientSize(self.GetClientSize())
