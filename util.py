@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 12:30:24
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-22 23:29:55
+# @Last Modified time: 2016-07-23 19:14:51
 import wx
 
 
@@ -20,13 +20,9 @@ def set_default_result(instance, matches, methods):
         raw_method = getattr(instance, n)
         setattr(instance, n, default_result(raw_method))
 
-def create_menubar(frame, data):
-    mb = wx.MenuBar()
-    # create menu
+def create_menu(frame, data):
     for title, items in data.items():
         m = wx.Menu()
-        mb.Append(m, title)
-        d = {}
         for label, name, act, ehandler in items:
             mi = None
             if act == 0:
@@ -35,14 +31,21 @@ def create_menubar(frame, data):
                     text=label,
                 )
             elif act == 1: #check
-                pass
+                mi = m.AppendCheckItem(-1, label)
             elif act == 2: #radio
-                pass
+                mi = m.AppendRadioItem(-1, label)
             elif act == -1: #seprator
                 m.AppendSeparator()
             if mi is not None:
                 frame.Bind(wx.EVT_MENU, ehandler, mi)
-    return mb, d
+        yield (m, title)
+
+def create_menubar(frame, data):
+    mb = wx.MenuBar()
+    # create menu
+    for m, title in create_menu(frame, data):
+        mb.Append(m, title)
+    return mb
 
 class Default:
     def set_default_result(self, *args, **kwds):
@@ -59,6 +62,10 @@ class After(object):
         _keys = {
             'icon',
             'fgcolor',
+            'headings',
+            'callback',
+            'onRightClick',
+            'minsize',
         }
         for k in _keys:
             v = kw.pop(k, None)
@@ -70,6 +77,13 @@ class After(object):
         if icon: self.SetIcon(wx.Icon(icon))
         fgcolor = getattr(self, 'fgcolor', None)
         if fgcolor: self.SetForegroundColour(fgcolor)
+        headings = getattr(self, 'headings', None)
+        if headings: 
+            for pos, heading in enumerate(headings):
+                self.InsertColumn(pos, heading)
+        minsize = getattr(self, 'minsize', None)
+        if minsize:
+            self.SetMinSize(minsize)
         self.DoAfterInit()
 
     def DoAfterInit(self):
