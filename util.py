@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 12:30:24
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-23 22:07:50
+# @Last Modified time: 2016-07-24 01:44:11
 import wx
 
 def get_or_None(obj, attr):

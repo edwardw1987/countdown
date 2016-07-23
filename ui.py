@@ -2,13 +2,18 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-23 22:24:17
+# @Last Modified time: 2016-07-24 02:52:01
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
 import db
 from tinydb.database import Element
 from collections import OrderedDict
+import glob
+from datetime import datetime, timedelta
+import threading
+import time
+from event import CountEvent, EVT_COUNT, CountingThread
 
 
 class Label(After, wx.StaticText):
@@ -21,10 +26,48 @@ class ListCtrl(After, wx.ListCtrl):
         self._eids = []
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.onRightClick)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onLeftDClick)
+        self.Bind(EVT_COUNT, self.OnCount)
 
-    def ToggleItemState(self, index):
+
+    def OnCount(self, evt):
+        pos, s = evt.GetValue()
+        self.SetStringItem(pos, 3, '%d s' % s)
+
+   
+    def AddRows(self, data_list):
+        for row in data_list:
+            pos = self.InsertStringItem(0, str(row.eid))
+            # add values in the other columns on the same row
+            self.SetStringItem(pos, 1, row['boss'], imageId=0)
+            self.SetStringItem(pos, 2, '0000-00-00 00:00:00')
+            self.SetStringItem(pos, 4, str(row['refresh']) + ' min')
+            self.SetStringItem(pos, 5, u'已停止')
+
+    def initRows(self, data_list):
+        self.AddRows(data_list)
+        self._setCache(data_list)
+
+    def GetRefresh(self, pos):
+        return self._refs[-(pos + 1)]
+
+    def _setCache(self, rows):
+        self._refs = [i['refresh'] for i in rows]
+        self._eids = [i.eid for i in rows]
+
+    @property
+    def IsStartAll(self):
+        return all(self._itemStates.values() or [0])
+
+    @property
+    def IsStopAll(self):
+        return not any(self._itemStates.values())
+
+    def ToggleItemState(self, index, state=None):
         eid = self.GetEid(index)
-        self._itemStates[eid] = not self._itemStates.get(eid, 0)
+        if state is None:
+            self._itemStates[eid] = not self._itemStates.get(eid, 0)
+        elif state in {0, 1}:
+            self._itemStates[eid] = state
 
     def GetItemState(self, index):
         return self._itemStates.get(self.GetEid(index), 0)
@@ -32,15 +75,13 @@ class ListCtrl(After, wx.ListCtrl):
     def OnRightClick(self, e):
         raise NotImplementedError()
 
-    def SetEids(self, eids):
-        self._eids = eids
-
     def GetEid(self, pos):
         eid = self._eids[-(pos + 1)]
         return eid
 
     def AddEids(self, eid):
         self._eids.append(eid)
+
 
     def DelEidsByPos(self, pos):
         print pos, -(pos + 1)
@@ -71,6 +112,11 @@ class ListCtrl(After, wx.ListCtrl):
             'rightClick': [
                 (u'停止', 'stop', 0, self.OnToggleStatus) if self.GetItemState(self._pos) else (
                     u'启动', 'start', 0, self.OnToggleStatus),
+                (u'全部启动', 'startall', 0, self.OnStartAll) if not self.IsStartAll else (
+                    None, None, None, None),
+                (u'全部停止', 'stopall', 0, self.OnStopAll) if not self.IsStopAll else (
+                    None, None, None, None),
+                (None, None, -1, None),
                 (u'删除', 'del', 0, self.OnDel),
                 (u'修改', 'mod', 0, self.OnMod),
             ]
@@ -90,6 +136,32 @@ class ListCtrl(After, wx.ListCtrl):
         self.ToggleItemState(self._pos)
         self.SetStringItem(
             self._pos, 5, u'已启动' if self.GetItemState(self._pos) else u'已停止')
+        self.SetStringItem(
+            self._pos, 2, datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S') if self.GetItemState(self._pos) else u'0000-00-00 00:00:00')
+        ref = self.GetRefresh(self._pos)
+        self.SetStringItem(
+            self._pos, 4, datetime.strftime(datetime.now() + timedelta(seconds=60 * ref), '%Y-%m-%d %H:%M:%S') if self.GetItemState(self._pos) else '%d min' % ref)
+        # ==========
+        worker = CountingThread(self, (ref, self._pos))
+        worker.start()
+
+    def OnStartAll(self, e):
+        self._toggleAll(e, state=1)
+
+    def OnStopAll(self, e):
+        self._toggleAll(e, state=0)
+
+    def _toggleAll(self, e, state=1):
+        for i in range(self.GetItemCount()):
+            self.ToggleItemState(i, state=state)
+            self.SetStringItem(
+                i, 5, u'已启动' if self.GetItemState(i) else u'已停止'
+            )
+            self.SetStringItem(
+                i, 2, datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S') if self.GetItemState(i) else u'0000-00-00 00:00:00')
+            ref = self.GetRefresh(i)
+            self.SetStringItem(
+                i, 4, datetime.strftime(datetime.now() + timedelta(seconds=60 * ref), '%Y-%m-%d %H:%M:%S') if self.GetItemState(i) else '%d min' % ref)
 
 
 class Dialog(After, wx.Dialog):
@@ -98,11 +170,11 @@ class Dialog(After, wx.Dialog):
         data = {
             'boss': self.ctrls[1].GetValue(),
             'refresh': self.ctrls[3].GetValue(),
-            'countdown': self.ctrls[5].GetValue(),
+            # 'countdown': self.ctrls[5].GetValue(),
         }
         ele = Element(data)
         ele.eid = db.insert(ele)
-        self.GetParent().AddRows([ele])
+        self.GetParent().LC.AddRows([ele])
         self.GetParent().LC.AddEids(ele.eid)
 
     def DoAfterInit(self):
@@ -117,10 +189,11 @@ class Dialog(After, wx.Dialog):
                             from_window_callback=self.OnAdd,
                         ),
                         ),
-            Label(self, label=u'刷新时间', fgcolor=fgcolor_val),
+            Label(self, label=u'刷新间隔', fgcolor=fgcolor_val),
             wx.SpinCtrl(self, style=wx.TE_CENTER, name='refresh'),
-            Label(self, label=u'倒计时', fgcolor=fgcolor_val),
-            wx.SpinCtrl(self, style=wx.TE_CENTER, name='countdown'),
+            # Label(self, label=u'倒计时', fgcolor=fgcolor_val),
+            # wx.SpinCtrl(self, style=wx.TE_CENTER, name='countdown'),
+            None, None,
             wx.Button(self, wx.ID_CANCEL),
             wx.Button(self, wx.ID_OK),
 
@@ -137,22 +210,22 @@ class Dialog(After, wx.Dialog):
         sizer.Add(ctrls[2], flag=wx.ALIGN_RIGHT | wx.TOP, border=border_val)
         sizer.Add(ctrls[3], flag=wx.EXPAND | (
             wx.ALL ^ wx.BOTTOM), border=border_val)
-        sizer.Add(ctrls[4], flag=wx.ALIGN_RIGHT | wx.TOP, border=border_val)
-        sizer.Add(ctrls[5], flag=wx.EXPAND | (
-            wx.ALL ^ wx.BOTTOM), border=border_val)
+        # sizer.Add(ctrls[4], flag=wx.ALIGN_RIGHT | wx.TOP, border=border_val)
+        # sizer.Add(ctrls[5], flag=wx.EXPAND | (
+        #     wx.ALL ^ wx.BOTTOM), border=border_val)
         sizer.Add(wx.StaticLine(self), flag=(
             wx.TOP | wx.BOTTOM) | wx.EXPAND, border=border_val * 3)
         sizer.Add(wx.StaticLine(self), flag=(
             wx.TOP | wx.BOTTOM) | wx.EXPAND, border=border_val * 3)
         # sizer.AddStretchSpacer()
-        sizer.Add(ctrls[6], flag=wx.ALIGN_RIGHT, border=border_val)
-        sizer.Add(ctrls[7], flag=wx.ALIGN_RIGHT | wx.RIGHT, border=border_val)
+        sizer.Add(ctrls[6], flag=wx.ALIGN_RIGHT|wx.LEFT|wx.BOTTOM, border=border_val)
+        sizer.Add(ctrls[7], flag=wx.ALIGN_RIGHT | wx.RIGHT|wx.BOTTOM, border=border_val)
         proportion = 5
         sizer.AddGrowableCol(0, proportion)  # idx, proportion
         sizer.AddGrowableCol(1, 10 - proportion)
 
         self.SetSizer(sizer)
-
+        sizer.Fit(self)
 
 class Frame(After, wx.Frame):
     def DoAfterInit(self):
@@ -169,29 +242,23 @@ class Frame(After, wx.Frame):
     def _initOthers(self):
         self.Bind(wx.EVT_SIZE, self.OnResize)
 
-    def AddRows(self, data_list):
-        for row in data_list:
-            pos = self.LC.InsertStringItem(0, str(row.eid))
-            # add values in the other columns on the same row
-            self.LC.SetStringItem(pos, 1, row['boss'])
-            self.LC.SetStringItem(pos, 4, str(row['refresh']))
-            self.LC.SetStringItem(pos, 5, u'已停止')
-
     def _initListCtrl(self):
         self.LC = ListCtrl(self,
                            style=wx.LC_REPORT,
                            headings=['ID', u'BOSS名称',
                                      u'死亡时间', u'倒计时', '刷新时间', '状态'],
-                           columnFormat=wx.LIST_FORMAT_CENTER,
+                           # columnFormat=wx.LIST_FORMAT_CENTER,
                            fgcolor='#f40',
 
                            )
         # ===============
-        self.LC.AdaptWidth(6, proportions=[0.5, 3, 2, 1, 2, 1.5])
+        il = wx.ImageList(16,16)
+        il.Add(wx.Bitmap('rat_head2.ico', wx.BITMAP_TYPE_ICON))
+        self.LC.AssignImageList(il, wx.IMAGE_LIST_SMALL)
         # ===============
-        rows = db.all()
-        self.AddRows(rows)
-        self.LC.SetEids([i.eid for i in rows])
+        self.LC.AdaptWidth(6, proportions=[0.5, 2.5, 2.5, 1, 2.5, 1])
+        # ===============
+        self.LC.initRows(db.all())
         # 0 will insert at the start of the list
 
     def _initMenuBar(self):
@@ -229,5 +296,5 @@ class Frame(After, wx.Frame):
         self.Destroy()
 
     def OnResize(self, e):
-        self.LC.AdaptWidth(6, proportions=[0.5, 3, 2, 1, 2, 1.5, ])
+        self.LC.AdaptWidth(6, proportions=[0.5, 2.5, 2.5, 1, 2.5, 1])
         self.LC.SetClientSize(self.GetClientSize())
