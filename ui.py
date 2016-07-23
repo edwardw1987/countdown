@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-23 19:30:58
+# @Last Modified time: 2016-07-23 20:21:33
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -32,6 +32,12 @@ class ListCtrl(After, wx.ListCtrl):
         eid = self._eids.pop(-(pos + 1) )
         db.delete([eid])
 
+    def AdaptWidth(self, headings_num, proportions):
+        num = sum(proportions)
+        for i in range(headings_num):
+            w = self.GetParent().GetClientSize()[0]/float(num) 
+            w *= proportions[i]
+            self.SetColumnWidth(i, w)
 
 class Dialog(After, wx.Dialog):
     def OnAdd(self):
@@ -105,6 +111,10 @@ class Frame(After, wx.Frame):
     def initAll(self):
         self._initMenuBar()
         self._initListCtrl()
+        self._initOthers()
+
+    def _initOthers(self):
+        self.Bind(wx.EVT_SIZE, self.OnResize)
 
     def AddRows(self, data_list):
         for row in data_list:
@@ -130,26 +140,15 @@ class Frame(After, wx.Frame):
             
 
         self.LC = ListCtrl(self, 
-            style=wx.LC_REPORT|wx.SUNKEN_BORDER|wx.LC_SINGLE_SEL,
+            style=wx.LC_REPORT,
             headings=['ID',u'BOSS名称', u'死亡时间', u'倒计时', '刷新时间', '状态'],
+            columnFormat=wx.LIST_FORMAT_CENTER,
             onRightClick=_onRightClick,
+            fgcolor='blue',
 
         )
         # ===============
-        proportions = [
-         0.5,
-         3,
-         2,
-         1, 
-         2,
-         1.5,
-        ]
-        num = sum(proportions)
-        assert num == 10
-        for i in range(6):
-            w = self.GetClientSize()[0]/float(num) 
-            w *= proportions[i]
-            self.LC.SetColumnWidth(i, w)
+        self.LC.AdaptWidth(6, proportions = [0.5, 3, 2, 1, 2, 1.5]) 
         # ===============
         rows = db.all()
         self.AddRows(rows)
@@ -194,3 +193,7 @@ class Frame(After, wx.Frame):
             self.SetWindowStyle(self.GetWindowStyle()^wx.STAY_ON_TOP)
     def OnQuit(self, e):
         self.Destroy()
+
+    def OnResize(self, e):
+        self.LC.AdaptWidth(6, proportions = [0.5, 3, 2, 1, 2, 1.5, ])
+        self.LC.SetClientSize(self.GetClientSize())

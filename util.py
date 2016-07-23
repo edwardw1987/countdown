@@ -2,10 +2,11 @@
 # @Author: edward
 # @Date:   2016-07-22 12:30:24
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-23 19:14:51
+# @Last Modified time: 2016-07-23 20:03:08
 import wx
 
-
+def get_or_None(obj, attr):
+    return getattr(obj, attr, None)
 def result(matches=[], default=None):
     def _decoractor(f):
         def fn(*args, **kwds):
@@ -65,6 +66,7 @@ class After(object):
             'headings',
             'callback',
             'onRightClick',
+            'columnFormat',
             'minsize',
         }
         for k in _keys:
@@ -73,17 +75,22 @@ class After(object):
         return kw
 
     def _doAfterInit(self):
-        icon = getattr(self, 'icon', None)
+        icon = get_or_None(self, 'icon')
+        fgcolor = get_or_None(self, 'fgcolor')
+        headings = get_or_None(self, 'headings')
+        minsize = get_or_None(self, 'minsize')
+        columnFormat = get_or_None(self, 'columnFormat')
+        # ====================
         if icon: self.SetIcon(wx.Icon(icon))
-        fgcolor = getattr(self, 'fgcolor', None)
         if fgcolor: self.SetForegroundColour(fgcolor)
-        headings = getattr(self, 'headings', None)
         if headings: 
             for pos, heading in enumerate(headings):
-                self.InsertColumn(pos, heading)
-        minsize = getattr(self, 'minsize', None)
+                fmt = columnFormat or wx.LIST_FORMAT_LEFT
+                self.InsertColumn(pos, heading, format=fmt)
+
         if minsize:
             self.SetMinSize(minsize)
+
         self.DoAfterInit()
 
     def DoAfterInit(self):
