@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-24 15:08:47
+# @Last Modified time: 2016-07-24 16:11:06
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -22,7 +22,6 @@ class Label(After, wx.StaticText):
 
 class ListCtrl(After, wx.ListCtrl):
     def DoAfterInit(self):
-        self._itemStates = {}
         self._threadPool = {}
         self._eids = []
         self._refs = []
@@ -41,7 +40,7 @@ class ListCtrl(After, wx.ListCtrl):
         pos, s = evt.GetValue()
         self.SetStringItem(pos, 3, '%d s' % s)
         if s == 0: # finish thread task
-            self.toggleState(pos)
+            self.toggleUI(pos)
    
     def AddRows(self, data_list):
         for row in data_list:
@@ -65,25 +64,24 @@ class ListCtrl(After, wx.ListCtrl):
 
     @property
     def IsStartAll(self):
-        return all(self._itemStates.values() or [0])
+        _isSets = [t.isSet() for t in self._threadPool.values()]
+        return all(_isSets or [0])
 
     @property
     def IsStopAll(self):
-        return not any(self._itemStates.values())
+        return not any(t.isSet() for t in self._threadPool.values())
 
-    def ToggleItemState(self, index, state=None):
-        eid = self.GetEid(index)
-        if state is None:
-            self._itemStates[eid] = not self._itemStates.get(eid, 0)
-        elif state in {0, 1}:
-            self._itemStates[eid] = state
-        return self._itemStates[eid]
 
-    def GetItemState(self, index):
-        return self._itemStates.get(self.GetEid(index), 0)
+    def getThreadState(self, pos):
+        # None no thread
+        # False Stopped
+        # True Running
+        eid = self.GetEid(pos)
+        thd = self._threadPool.get(eid)
+        if thd is not None:
+            return not thd.stopped()
+        return thd
 
-    def OnRightClick(self, e):
-        raise NotImplementedError()
 
     def GetEid(self, pos):
         eid = self._eids[pos]
@@ -92,16 +90,6 @@ class ListCtrl(After, wx.ListCtrl):
     def AddEids(self, eid):
         self._eids.append(eid)
         print self._eids
-
-
-    def DelEidsByPos(self, pos):
-        print pos
-        print self._eids
-        eid = self._eids.pop(pos)
-
-        print eid
-        print self._eids
-        db.delete([eid])
 
     def AdaptWidth(self, headings_num, proportions):
         num = sum(proportions)
@@ -116,7 +104,7 @@ class ListCtrl(After, wx.ListCtrl):
         self._pos = e.GetIndex()
         if self._pos < 0:
             return
-        self.OnToggleState(e)
+        self.OnToggle(e)
 
     def onRightClick(self, e):
         print 'onRightClick'
@@ -125,8 +113,8 @@ class ListCtrl(After, wx.ListCtrl):
             return
         data = {
             'rightClick': [
-                (u'停止', 'stop', 0, self.OnToggleState) if self.GetItemState(self._pos) else (
-                    u'启动', 'start', 0, self.OnToggleState),
+                (u'停止', 'stop', 0, self.OnToggle) if self.getThreadState(self._pos) else (
+                    u'启动', 'start', 0, self.OnToggle),
                 (u'全部启动', 'startall', 0, self.OnStartAll) if not self.IsStartAll else (
                     None, None, None, None),
                 (u'全部停止', 'stopall', 0, self.OnStopAll) if not self.IsStopAll else (
@@ -140,9 +128,15 @@ class ListCtrl(After, wx.ListCtrl):
             self.PopupMenu(m)
             break
 
+    def _delByPos(self, pos):
+        eid = self._eids.pop(pos)
+        self._refs.pop(pos)
+        self._threadPool.pop(eid)
+        db.delete([eid])
+
     def DeleteItem(self, pos):
         super(ListCtrl, self).DeleteItem(pos)
-        self.DelEidsByPos(pos)
+        self._delEidsByPos(pos)
 
     def OnDel(self, e):
         self.DeleteItem(self._pos)
@@ -150,22 +144,25 @@ class ListCtrl(After, wx.ListCtrl):
     def OnMod(self, e):
         print 'OnMod'
 
-    def toggleThread(self, pos, state):
-        if state == 1:
+    def toggleThread(self, pos):
+        state = self.getThreadState(pos)
+        if state in (None, False):
             ref = self.GetRefresh(pos)
             worker = CountingThread(self, (ref, pos))
             worker.start()
             self.setThread(pos, worker)
             print 'start'
-        elif state == 0:
+        elif state is True:
             thread = self.getThread(pos)
             if thread is not None and not thread.stopped():
                 thread.stop()
                 self.SetStringItem(pos, 3, '0 s')
                 print 'stop'
+        else:
+            assert 0
 
-    def toggleState(self, pos):
-        state = self.ToggleItemState(pos)
+    def toggleUI(self, pos, state=None):
+        state = state or self.getThreadState(pos)
         self.SetStringItem(
             pos, 5, u'已启动' if state else u'已停止')
         self.SetStringItem(
@@ -173,30 +170,20 @@ class ListCtrl(After, wx.ListCtrl):
         ref = self.GetRefresh(pos)
         self.SetStringItem(
             pos, 4, datetime.strftime(datetime.now() + timedelta(seconds=60 * ref), '%Y-%m-%d %H:%M:%S') if state else '%d min' % ref)
-        return state
 
-    def OnToggleState(self, e):
-        state =self.toggleState(self._pos)
-        self.toggleThread(self._pos, state)
+    def OnToggle(self, e):
+        self.toggleThread(self._pos)
+        self.toggleUI(self._pos)
 
     def OnStartAll(self, e):
-        self._toggleAll(e, state=1)
+        self._toggleAll(state=1)
 
     def OnStopAll(self, e):
-        self._toggleAll(e, state=0)
+        self._toggleAll(state=0)
 
-    def _toggleAll(self, e, state=1):
+    def _toggleAll(self, state=1):
         for i in range(self.GetItemCount()):
-            self.ToggleItemState(i, state=state)
-            self.SetStringItem(
-                i, 5, u'已启动' if self.GetItemState(i) else u'已停止'
-            )
-            self.SetStringItem(
-                i, 2, datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S') if self.GetItemState(i) else u'0000-00-00 00:00:00')
-            ref = self.GetRefresh(i)
-            self.SetStringItem(
-                i, 4, datetime.strftime(datetime.now() + timedelta(seconds=60 * ref), '%Y-%m-%d %H:%M:%S') if self.GetItemState(i) else '%d min' % ref)
-            self.toggleThread(i, state)
+            self.toggleUI(i, state=state)
 
 class Dialog(After, wx.Dialog):
     def OnAdd(self):
