@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 12:30:24
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-24 01:44:11
+# @Last Modified time: 2016-07-24 21:44:15
 import wx
 
 def get_or_None(obj, attr):
@@ -79,7 +79,7 @@ class After(object):
         minsize = get_or_None(self, 'minsize')
         columnFormat = get_or_None(self, 'columnFormat')
         # ====================
-        if icon: self.SetIcon(wx.Icon(icon))
+        if icon: self.SetIcon(icon)
         if fgcolor: self.SetForegroundColour(fgcolor)
         if headings: 
             for pos, heading in enumerate(headings):

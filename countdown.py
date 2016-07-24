@@ -2,16 +2,17 @@
 # @Author: edward
 # @Date:   2016-07-21 15:52:58
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-23 18:46:18
+# @Last Modified time: 2016-07-24 21:44:28
 import wx
 import ui
-
+from resource import rat_head
 class App(wx.App):
     def OnInit(self):       
         fr = ui.Frame(
             None,
             title="RatHead CountDown",
-            icon="rat_head.ico",
+            icon=rat_head.getIcon(),
+            # icon="rat_head16.ico",
             size=(640,480),
             minsize=(400,300),
             )

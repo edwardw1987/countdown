@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-24 19:34:31
+# @Last Modified time: 2016-07-24 21:44:04
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -49,7 +49,7 @@ class ListCtrl(After, wx.ListCtrl):
         for row in data_list:
             pos = self.InsertStringItem(self.GetItemCount(), str(row.eid))
             # add values in the other columns on the same row
-            self.SetStringItem(pos, 1, row['boss'], imageId=0)
+            self.SetStringItem(pos, 1, row['boss'])
             self.SetStringItem(pos, 2, '0000-00-00 00:00:00')
             self.SetStringItem(pos, 3, '0 s')
             self.SetStringItem(pos, 4, str(row['refresh']) + ' min')
@@ -280,15 +280,16 @@ class Frame(After, wx.Frame):
         self.LC = ListCtrl(self,
                            style=wx.LC_REPORT,
                            headings=['ID', u'BOSS名称',
-                                     u'死亡时间', u'倒计时', '刷新时间', '状态'],
+                                     u'死亡时间', u'倒计时', u'刷新时间', u'状态'],
                            # columnFormat=wx.LIST_FORMAT_CENTER,
                            fgcolor='#f40',
 
                            )
         # ===============
-        il = wx.ImageList(16,16)
-        il.Add(wx.Bitmap('rat_head2.ico', wx.BITMAP_TYPE_ICON))
-        self.LC.AssignImageList(il, wx.IMAGE_LIST_SMALL)
+        # w = h = 16
+        # il = wx.ImageList(w, h)
+        # il.Add(wx.Bitmap('rat_head16.ico', wx.BITMAP_TYPE_ICO))
+        # self.LC.AssignImageList(il, wx.IMAGE_LIST_SMALL)
         # ===============
         self.LC.AdaptWidth(6, proportions=[0.5, 2.5, 2.5, 1, 2.5, 1])
         # ===============
@@ -318,6 +319,7 @@ class Frame(After, wx.Frame):
 
     def OnAdd(self, e):
         dlg = Dialog(self, title=u"添加倒计时", size=(240, 180))
+        dlg.Center()
         dlg.ShowModal()
 
     def OnSwitchTop(self, e):
