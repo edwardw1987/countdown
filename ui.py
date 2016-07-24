@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-24 18:21:07
+# @Last Modified time: 2016-07-24 19:34:31
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -88,12 +88,12 @@ class ListCtrl(After, wx.ListCtrl):
 
     def getThreadState(self, pos):
         # None no thread
-        # False Stopped
-        # True Running
+        # 0 Stopped
+        # 1 Running
         eid = self.GetEid(pos)
         thd = self._threadPool.get(eid)
         if thd is not None:
-            return not thd.stopped()
+            return 0 if thd.stopped() else 1
         return thd
 
     def GetEid(self, pos):
@@ -144,7 +144,7 @@ class ListCtrl(After, wx.ListCtrl):
     def cleanByPos(self, pos):
         e = self._cache.pop(pos)
         thd = self._threadPool.pop(e.eid, None)
-        thd.stop()
+        if thd and not thd.stopped(): thd.stop()
         db.delete([e.eid])
 
     def DeleteItem(self, pos):
@@ -157,25 +157,23 @@ class ListCtrl(After, wx.ListCtrl):
     def OnMod(self, e):
         print 'OnMod'
 
-    def toggleThread(self, pos, batch=False, state=1):
-        thd_state = self.getThreadState(pos)
-        if not batch:
-            state = not thd_state
-        if thd_state in (None, False) and state == 1:
+    def toggleThread(self, pos):
+        state = self.getThreadState(pos)
+        if state in (None, 0):
             ref = self.GetRefresh(pos)
             worker = CountingThread(self, (ref, pos))
             worker.start()
             self.setThread(pos, worker)
             print 'start'
-        elif thd_state is True and state == 0 :
+        elif state == 1:
             thread = self.getThread(pos)
             if thread is not None and not thread.stopped():
                 thread.stop()
                 self.SetStringItem(pos, 3, '0 s')
                 print 'stop'
 
-    def toggleUI(self, pos, state=None):
-        state = state or self.getThreadState(pos)
+    def toggleUI(self, pos):
+        state = self.getThreadState(pos)
         self.SetStringItem(
             pos, 5, u'已启动' if state else u'已停止')
         self.SetStringItem(
@@ -196,8 +194,10 @@ class ListCtrl(After, wx.ListCtrl):
 
     def _toggleAll(self, state=1):
         for i in range(self.GetItemCount()):
-            self.toggleThread(i, batch=True, state=state)
-            self.toggleUI(i, state=state)
+            if self.getThreadState(i) == state: # em
+                continue
+            self.toggleThread(i)
+            self.toggleUI(i)
 
 class Dialog(After, wx.Dialog):
     def OnAdd(self):
