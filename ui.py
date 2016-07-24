@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-24 16:11:06
+# @Last Modified time: 2016-07-24 18:21:07
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -23,8 +23,7 @@ class Label(After, wx.StaticText):
 class ListCtrl(After, wx.ListCtrl):
     def DoAfterInit(self):
         self._threadPool = {}
-        self._eids = []
-        self._refs = []
+        self._cache = []
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.onRightClick)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onLeftDClick)
         self.Bind(EVT_COUNT, self.OnCount)
@@ -35,6 +34,10 @@ class ListCtrl(After, wx.ListCtrl):
     def setThread(self, pos, thread):
         eid = self.GetEid(pos)
         self._threadPool[eid] = thread
+
+    def _initThreadPool(self, data):
+        new = dict.fromkeys(i.eid for i in data)
+        self._threadPool.update(new)
 
     def OnCount(self, evt):
         pos, s = evt.GetValue()
@@ -56,21 +59,32 @@ class ListCtrl(After, wx.ListCtrl):
     initRows = AddRows
 
     def addCache(self, rows):
-        self._refs.extend(i['refresh'] for i in rows)
-        self._eids.extend(i.eid for i in rows)
+        self._cache.extend(rows)
+        self._initThreadPool(rows)
 
     def GetRefresh(self, pos):
-        return self._refs[pos]
+        return self._cache[pos]['refresh']
 
     @property
-    def IsStartAll(self):
-        _isSets = [t.isSet() for t in self._threadPool.values()]
-        return all(_isSets or [0])
+    def allStopped(self):
+        thds = self._threadPool.values()
+        if any(thds):
+            for thd in thds:
+                if thd and not thd.stopped():
+                    return False
+        return True
 
     @property
-    def IsStopAll(self):
-        return not any(t.isSet() for t in self._threadPool.values())
+    def allStarted(self):
+        thds = self._threadPool.values()
+        if all(thds):
+            for thd in thds:
+                if thd.stopped():
+                    break
+            else:
+                return True
 
+        return False
 
     def getThreadState(self, pos):
         # None no thread
@@ -82,14 +96,8 @@ class ListCtrl(After, wx.ListCtrl):
             return not thd.stopped()
         return thd
 
-
     def GetEid(self, pos):
-        eid = self._eids[pos]
-        return eid
-
-    def AddEids(self, eid):
-        self._eids.append(eid)
-        print self._eids
+        return self._cache[pos].eid
 
     def AdaptWidth(self, headings_num, proportions):
         num = sum(proportions)
@@ -115,28 +123,33 @@ class ListCtrl(After, wx.ListCtrl):
             'rightClick': [
                 (u'停止', 'stop', 0, self.OnToggle) if self.getThreadState(self._pos) else (
                     u'启动', 'start', 0, self.OnToggle),
-                (u'全部启动', 'startall', 0, self.OnStartAll) if not self.IsStartAll else (
+                (u'全部启动', 'startall', 0, self.OnStartAll) if not self.allStarted else (
                     None, None, None, None),
-                (u'全部停止', 'stopall', 0, self.OnStopAll) if not self.IsStopAll else (
+                (u'全部停止', 'stopall', 0, self.OnStopAll) if not self.allStopped else (
                     None, None, None, None),
                 (None, None, -1, None),
                 (u'删除', 'del', 0, self.OnDel),
-                (u'修改', 'mod', 0, self.OnMod),
+                # (u'修改', 'mod', 0, self.OnMod),
             ]
         }
         for m, title in create_menu(self.GetParent(), data):
             self.PopupMenu(m)
             break
 
-    def _delByPos(self, pos):
-        eid = self._eids.pop(pos)
-        self._refs.pop(pos)
-        self._threadPool.pop(eid)
-        db.delete([eid])
+    def cleanThreadOnClose(self):
+        for thd in self._threadPool.values():
+            if thd and not thd.stopped():
+                thd.stop()
+
+    def cleanByPos(self, pos):
+        e = self._cache.pop(pos)
+        thd = self._threadPool.pop(e.eid, None)
+        thd.stop()
+        db.delete([e.eid])
 
     def DeleteItem(self, pos):
         super(ListCtrl, self).DeleteItem(pos)
-        self._delEidsByPos(pos)
+        self.cleanByPos(pos)
 
     def OnDel(self, e):
         self.DeleteItem(self._pos)
@@ -144,22 +157,22 @@ class ListCtrl(After, wx.ListCtrl):
     def OnMod(self, e):
         print 'OnMod'
 
-    def toggleThread(self, pos):
-        state = self.getThreadState(pos)
-        if state in (None, False):
+    def toggleThread(self, pos, batch=False, state=1):
+        thd_state = self.getThreadState(pos)
+        if not batch:
+            state = not thd_state
+        if thd_state in (None, False) and state == 1:
             ref = self.GetRefresh(pos)
             worker = CountingThread(self, (ref, pos))
             worker.start()
             self.setThread(pos, worker)
             print 'start'
-        elif state is True:
+        elif thd_state is True and state == 0 :
             thread = self.getThread(pos)
             if thread is not None and not thread.stopped():
                 thread.stop()
                 self.SetStringItem(pos, 3, '0 s')
                 print 'stop'
-        else:
-            assert 0
 
     def toggleUI(self, pos, state=None):
         state = state or self.getThreadState(pos)
@@ -183,6 +196,7 @@ class ListCtrl(After, wx.ListCtrl):
 
     def _toggleAll(self, state=1):
         for i in range(self.GetItemCount()):
+            self.toggleThread(i, batch=True, state=state)
             self.toggleUI(i, state=state)
 
 class Dialog(After, wx.Dialog):
@@ -261,7 +275,7 @@ class Frame(After, wx.Frame):
 
     def _initOthers(self):
         self.Bind(wx.EVT_SIZE, self.OnResize)
-
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
     def _initListCtrl(self):
         self.LC = ListCtrl(self,
                            style=wx.LC_REPORT,
@@ -312,9 +326,11 @@ class Frame(After, wx.Frame):
         else:
             self.SetWindowStyle(self.GetWindowStyle() ^ wx.STAY_ON_TOP)
 
-    def OnQuit(self, e):
-        self.Destroy()
-
     def OnResize(self, e):
         self.LC.AdaptWidth(6, proportions=[0.5, 2.5, 2.5, 1, 2.5, 1])
         self.LC.SetClientSize(self.GetClientSize())
+
+    def OnClose(self, e):
+        self.LC.cleanThreadOnClose()
+        self.Destroy()
+    OnQuit = OnClose

@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-24 02:22:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-24 13:19:33
+# @Last Modified time: 2016-07-24 16:49:15
 import wx
 import threading
 import time
@@ -55,8 +55,8 @@ class CountingThread(StoppableThread):
         ref, pos = self._value
         s = ref * 60 
         while s >= 0 and not self.stopped():
+            if s == 0: self.stop()
             evt = CountEvent(myEVT_COUNT, -1, (pos, s))
             wx.PostEvent(self._parent, evt)
             time.sleep(1) # our simulated calculation time
             s -= 1
-        self.stop()
