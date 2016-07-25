@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-25 20:20:55
+# @Last Modified time: 2016-07-25 22:44:46
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -18,7 +18,8 @@ from event import CountEvent, EVT_COUNT, CountingThread
 
 class Label(After, wx.StaticText):
     pass
-
+class MenuItem(After, wx.MenuItem):
+    pass
 
 class ListCtrl(After, wx.ListCtrl):
     def DoAfterInit(self):
@@ -117,19 +118,16 @@ class ListCtrl(After, wx.ListCtrl):
     def onRightClick(self, e):
         print 'onRightClick'
         self._pos = e.GetIndex()
-        if self._pos < 0:
-            return
+        state = self.getThreadState(self._pos)
         data = {
             'rightClick': [
-                (u'停止', 'stop', 0, self.OnToggle) if self.getThreadState(self._pos) else (
-                    u'启动', 'start', 0, self.OnToggle),
-                (u'全部启动', 'startall', 0, self.OnStartAll) if not self.allStarted else (
-                    None, None, None, None),
-                (u'全部停止', 'stopall', 0, self.OnStopAll) if not self.allStopped else (
-                    None, None, None, None),
-                (None, None, -1, None),
-                (u'删除', 'del', 0, self.OnDel),
                 # (u'修改', 'mod', 0, self.OnMod),
+                MenuItem(text=u'停止', id=-1, kind=0, handler=self.OnToggle, enable=state == 1 and self._pos >= 0),
+                MenuItem(text=u'启动', id=-1, kind=0, handler=self.OnToggle, enable=state == 0 and self._pos >= 0),
+                MenuItem(text=u'全部启动', id=-1, kind=0, handler=self.OnStartAll, enable=not self.allStarted),
+                MenuItem(text=u'全部停止', id=-1, kind=0, handler=self.OnStopAll, enable=not self.allStopped),
+                -1,
+                MenuItem(text=u'删除', id=-1, kind=0, handler=self.OnDel, enable=self._pos >= 0 and state == 0),
             ]
         }
         for m, title in create_menu(self.GetParent(), data):
@@ -300,12 +298,12 @@ class Frame(After, wx.Frame):
         _OD = OrderedDict()
 
         _OD[u'操作(&O)'] = [
-            (u'添加倒计时\tCtrl+N', 'add', 0, self.OnAdd),
-            (None, '', -1, None),
-            (u'退出\tCtrl+Q', 'quit', 0, self.OnQuit),
+            MenuItem(text=u'添加倒计时\tCtrl+N', id=-1, kind=0, handler=self.OnAdd),
+            -1,
+            MenuItem(text=u'退出\tCtrl+Q', id=-1, kind=0, handler=self.OnQuit),
         ]
         _OD[u'查看(&V)'] = [
-            (u'窗口置顶', 'top', 1, self.OnSwitchTop),
+            MenuItem(text=u'窗口置顶', id=-1, kind=1, handler=self.OnSwitchTop),
         ]
 
         mb = create_menubar(self, _OD)

@@ -2,55 +2,9 @@
 # @Author: edward
 # @Date:   2016-07-22 12:30:24
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-24 21:44:15
+# @Last Modified time: 2016-07-25 22:37:40
 import wx
 
-def get_or_None(obj, attr):
-    return getattr(obj, attr, None)
-def result(matches=[], default=None):
-    def _decoractor(f):
-        def fn(*args, **kwds):
-            r = f(*args, **kwds)
-            return  default if r in matches else r
-        return fn
-    return _decoractor
-
-def set_default_result(instance, matches, methods):
-    default_result = result(matches=matches, default=instance)
-    for n in methods:
-        raw_method = getattr(instance, n)
-        setattr(instance, n, default_result(raw_method))
-
-def create_menu(frame, data):
-    for title, items in data.items():
-        m = wx.Menu()
-        for label, name, act, ehandler in items:
-            mi = None
-            if act == 0:
-                mi = m.Append(
-                    -1,
-                    text=label,
-                )
-            elif act == 1: #check
-                mi = m.AppendCheckItem(-1, label)
-            elif act == 2: #radio
-                mi = m.AppendRadioItem(-1, label)
-            elif act == -1: #seprator
-                m.AppendSeparator()
-            if mi is not None:
-                frame.Bind(wx.EVT_MENU, ehandler, mi)
-        yield (m, title)
-
-def create_menubar(frame, data):
-    mb = wx.MenuBar()
-    # create menu
-    for m, title in create_menu(frame, data):
-        mb.Append(m, title)
-    return mb
-
-class Default:
-    def set_default_result(self, *args, **kwds):
-        return set_default_result(self, *args, **kwds)
 
 class After(object):
 
@@ -66,6 +20,8 @@ class After(object):
             'headings',
             'columnFormat',
             'minsize',
+            'enable',
+            'handler',
         }
         for k in _keys:
             v = kw.pop(k, None)
@@ -93,6 +49,48 @@ class After(object):
 
     def DoAfterInit(self):
         pass
+
+def get_or_None(obj, attr):
+    return getattr(obj, attr, None)
+def result(matches=[], default=None):
+    def _decoractor(f):
+        def fn(*args, **kwds):
+            r = f(*args, **kwds)
+            return  default if r in matches else r
+        return fn
+    return _decoractor
+
+def set_default_result(instance, matches, methods):
+    default_result = result(matches=matches, default=instance)
+    for n in methods:
+        raw_method = getattr(instance, n)
+        setattr(instance, n, default_result(raw_method))
+
+def create_menu(frame, data):
+    for title, items in data.items():
+        m = wx.Menu()
+        for mi in items:
+            if mi == -1:
+                m.AppendSeparator()
+            else:
+                # kind: 0 normal, 1 check, 2 radio, -1 seprator
+                # print mi
+                m.AppendItem(mi)
+                frame.Bind(wx.EVT_MENU, mi.handler, mi)
+                mi.Enable({1: 1, 0: 0, None: 1}[mi.enable])
+        yield (m, title)
+
+def create_menubar(frame, data):
+    mb = wx.MenuBar()
+    # create menu
+    for m, title in create_menu(frame, data):
+        mb.Append(m, title)
+    return mb
+
+class Default:
+    def set_default_result(self, *args, **kwds):
+        return set_default_result(self, *args, **kwds)
+
 
 def main():
     default_result = result(matches=[None], default=1)
