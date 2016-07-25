@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-25 22:44:46
+# @Last Modified time: 2016-07-25 22:54:44
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -122,8 +122,10 @@ class ListCtrl(After, wx.ListCtrl):
         data = {
             'rightClick': [
                 # (u'修改', 'mod', 0, self.OnMod),
+                MenuItem(text=u'启动', id=-1, kind=0, handler=self.OnToggle, enable=state == 0 and self._pos >= 0)\
+                if state == 0 else \
                 MenuItem(text=u'停止', id=-1, kind=0, handler=self.OnToggle, enable=state == 1 and self._pos >= 0),
-                MenuItem(text=u'启动', id=-1, kind=0, handler=self.OnToggle, enable=state == 0 and self._pos >= 0),
+                -1,
                 MenuItem(text=u'全部启动', id=-1, kind=0, handler=self.OnStartAll, enable=not self.allStarted),
                 MenuItem(text=u'全部停止', id=-1, kind=0, handler=self.OnStopAll, enable=not self.allStopped),
                 -1,
