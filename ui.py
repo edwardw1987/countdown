@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-24 21:44:04
+# @Last Modified time: 2016-07-25 20:12:15
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -36,7 +36,7 @@ class ListCtrl(After, wx.ListCtrl):
         self._threadPool[eid] = thread
 
     def _initThreadPool(self, data):
-        new = dict.fromkeys(i.eid for i in data)
+        new = dict.fromkeys([i.eid for i in data], 0)
         self._threadPool.update(new)
 
     def OnCount(self, evt):
@@ -70,7 +70,7 @@ class ListCtrl(After, wx.ListCtrl):
         thds = self._threadPool.values()
         if any(thds):
             for thd in thds:
-                if thd and not thd.stopped():
+                if thd != 0 and not thd.stopped():
                     return False
         return True
 
@@ -87,12 +87,12 @@ class ListCtrl(After, wx.ListCtrl):
         return False
 
     def getThreadState(self, pos):
-        # None no thread
+        # 0 no thread
         # 0 Stopped
         # 1 Running
         eid = self.GetEid(pos)
         thd = self._threadPool.get(eid)
-        if thd is not None:
+        if thd != 0:
             return 0 if thd.stopped() else 1
         return thd
 
@@ -164,13 +164,13 @@ class ListCtrl(After, wx.ListCtrl):
             worker = CountingThread(self, (ref, pos))
             worker.start()
             self.setThread(pos, worker)
-            print 'start'
+            # print 'start'
         elif state == 1:
             thread = self.getThread(pos)
             if thread is not None and not thread.stopped():
                 thread.stop()
                 self.SetStringItem(pos, 3, '0 s')
-                print 'stop'
+                # print 'stop'
 
     def toggleUI(self, pos):
         state = self.getThreadState(pos)
