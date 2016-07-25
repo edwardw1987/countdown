@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-25 20:12:15
+# @Last Modified time: 2016-07-25 20:20:55
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -148,8 +148,8 @@ class ListCtrl(After, wx.ListCtrl):
         db.delete([e.eid])
 
     def DeleteItem(self, pos):
-        super(ListCtrl, self).DeleteItem(pos)
         self.cleanByPos(pos)
+        super(ListCtrl, self).DeleteItem(pos)
 
     def OnDel(self, e):
         self.DeleteItem(self._pos)
