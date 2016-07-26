@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-26 19:25:52
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-26 20:45:47
+# @Last Modified time: 2016-07-26 23:00:18
 from _bytes import src as AUDIO_SRC
 import os
 import mp3play
@@ -11,8 +11,9 @@ import time
 
 
 class Clock(object):
-    def __init__(self, name, *args, **kw):
+    def __init__(self, frame, name, *args, **kw):
         super(Clock, self).__init__(*args, **kw)
+        self.frame = frame
         self.filename = name
         self._started = False
         self._thd = None
