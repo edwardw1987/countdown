@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-26 19:25:52
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-26 20:28:48
+# @Last Modified time: 2016-07-26 20:45:47
 from _bytes import src as AUDIO_SRC
 import os
 import mp3play
@@ -34,8 +34,8 @@ class Clock(object):
         self._started = False
 
     def Play(self, thd):
-        self._thd = thd
         if self._started is False:
+            self._thd = thd
             t = threading.Thread(target=self._task)
             t.setDaemon(True)
             t.start()
