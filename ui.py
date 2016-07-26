@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-26 20:18:43
+# @Last Modified time: 2016-07-26 23:12:29
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -42,14 +42,17 @@ class ListCtrl(After, wx.ListCtrl):
 
     def OnCount(self, evt):
         pos, s = evt.GetValue()
+        thd = self.getThread(pos)
         self.SetStringItem(pos, 3, '%d s' % s)
         if s == 30:
-            thd = self.getThread(pos)
             fr = self.GetParent()
-            fr.clock.Play(thd)
+            fr.clock.Play()
             fr.Restore()
         elif s == 0: # finish thread task
             self.toggleUI(pos)
+        else:
+            if thd.stopped():
+                fr.clock.Stop()
    
     def AddRows(self, data_list):
         for row in data_list:
