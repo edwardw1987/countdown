@@ -3,7 +3,7 @@
 # @Author: edward
 # @Date:   2016-07-21 15:52:58
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-26 19:40:56
+# @Last Modified time: 2016-07-26 22:13:05
 import wx
 import ui
 from resource import rat_head_original
@@ -34,7 +34,7 @@ class App(wx.App):
                 wx.MessageBox('expired!' if signal == True else 'network error')
                 fr.Destroy()
                 return True
-        fr.clock = Clock('clock.mp3')
+        fr.clock = Clock(fr, 'clock.mp3')
         self.SetTopWindow(fr)
         return True
 
