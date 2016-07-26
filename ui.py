@@ -2,8 +2,9 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-25 22:54:44
+# @Last Modified time: 2016-07-26 15:22:50
 import wx
+import wx.media
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
 import db
@@ -270,6 +271,11 @@ class Frame(After, wx.Frame):
 
     def initAll(self):
         self._initMenuBar()
+        # self.mediaCtrl = wx.media.MediaCtrl(self)
+        # self.mediaCtrl.Hide()
+        # self.mediaCtrl.Load('clock.mp3')
+        # self.mediaCtrl.Play()
+
         self._initListCtrl()
         self._initOthers()
 
