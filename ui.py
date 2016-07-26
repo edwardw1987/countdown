@@ -2,9 +2,8 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-26 15:22:50
+# @Last Modified time: 2016-07-26 20:18:43
 import wx
-import wx.media
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
 import db
@@ -44,7 +43,12 @@ class ListCtrl(After, wx.ListCtrl):
     def OnCount(self, evt):
         pos, s = evt.GetValue()
         self.SetStringItem(pos, 3, '%d s' % s)
-        if s == 0: # finish thread task
+        if s == 30:
+            thd = self.getThread(pos)
+            fr = self.GetParent()
+            fr.clock.Play(thd)
+            fr.Restore()
+        elif s == 0: # finish thread task
             self.toggleUI(pos)
    
     def AddRows(self, data_list):
@@ -271,11 +275,6 @@ class Frame(After, wx.Frame):
 
     def initAll(self):
         self._initMenuBar()
-        # self.mediaCtrl = wx.media.MediaCtrl(self)
-        # self.mediaCtrl.Hide()
-        # self.mediaCtrl.Load('clock.mp3')
-        # self.mediaCtrl.Play()
-
         self._initListCtrl()
         self._initOthers()
 
