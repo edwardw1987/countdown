@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-27 09:29:25
+# @Last Modified time: 2016-07-27 10:31:10
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -44,8 +44,9 @@ class ListCtrl(After, wx.ListCtrl):
         pos, s = evt.GetValue()
         thd = self.getThread(pos)
         self.SetStringItem(pos, 3, '%d s' % s)
-        if s == 30:
+        if s == 50:
             fr = self.GetParent()
+            fr.clock.setThread(thd)
             fr.clock.Play()
             fr.Restore()
         elif s == 0: # finish thread task
@@ -190,7 +191,9 @@ class ListCtrl(After, wx.ListCtrl):
 
     def OnToggle(self, e):
         state = self.toggleThread(self._pos)
-        if state == 0:
+        fr = self.GetParent()
+        thd_identified = self.getThread(self._pos) == fr.clock.getThread()
+        if state == 0 and thd_identified: # which thread to stop clock
             self.GetParent().clock.Stop()
         self.toggleUI(self._pos)
 
@@ -277,7 +280,6 @@ class Frame(After, wx.Frame):
     def DoAfterInit(self):
         # self.panel = wx.Panel(self)
         self.initAll()
-        self.Show()
         self.Center()
 
     def initAll(self):
