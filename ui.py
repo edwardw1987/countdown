@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-27 14:16:41
+# @Last Modified time: 2016-07-27 14:48:21
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -56,6 +56,16 @@ class ListCtrl(After, wx.ListCtrl):
             if ck.GetState() == 0:
                 fr.clock.setThread(thd)
                 fr.clock.Play()
+                # ==========
+                boss = self.GetItemText(pos, 1)
+                dlg = getattr(self, '_bossHintDlg', None)
+                if dlg: dlg.Destroy()
+                self._bossHintDlg = dlg = wx.MessageDialog(self, 
+                    u'BOSS %s 即将到来! 请做好准备!' % boss,
+                    u'警告',
+                    wx.OK|wx.ICON_WARNING)
+                dlg.ShowModal()
+                ck.Stop()
         elif s == 0:  # finish thread task
             self.toggleUI(pos)
 
