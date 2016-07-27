@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-26 23:12:29
+# @Last Modified time: 2016-07-27 09:29:25
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -50,9 +50,6 @@ class ListCtrl(After, wx.ListCtrl):
             fr.Restore()
         elif s == 0: # finish thread task
             self.toggleUI(pos)
-        else:
-            if thd.stopped():
-                fr.clock.Stop()
    
     def AddRows(self, data_list):
         for row in data_list:
@@ -166,19 +163,20 @@ class ListCtrl(After, wx.ListCtrl):
         print 'OnMod'
 
     def toggleThread(self, pos):
-        state = self.getThreadState(pos)
-        if state in (None, 0):
+        state = 0 if self.getThreadState(pos) == 1 else 1
+        if state == 1:
             ref = self.GetRefresh(pos)
             worker = CountingThread(self, (ref, pos))
             worker.start()
             self.setThread(pos, worker)
             # print 'start'
-        elif state == 1:
+        elif state == 0:
             thread = self.getThread(pos)
             if thread is not None and not thread.stopped():
                 thread.stop()
                 self.SetStringItem(pos, 3, '0 s')
                 # print 'stop'
+        return state
 
     def toggleUI(self, pos):
         state = self.getThreadState(pos)
@@ -191,7 +189,9 @@ class ListCtrl(After, wx.ListCtrl):
             pos, 4, datetime.strftime(datetime.now() + timedelta(seconds=60 * ref), '%Y-%m-%d %H:%M:%S') if state else '%d min' % ref)
 
     def OnToggle(self, e):
-        self.toggleThread(self._pos)
+        state = self.toggleThread(self._pos)
+        if state == 0:
+            self.GetParent().clock.Stop()
         self.toggleUI(self._pos)
 
     def OnStartAll(self, e):
@@ -201,6 +201,10 @@ class ListCtrl(After, wx.ListCtrl):
         self._toggleAll(state=0)
 
     def _toggleAll(self, state=1):
+        if state == 0:
+            fr = self.GetParent()
+            fr.clock.Stop()
+
         for i in range(self.GetItemCount()):
             if self.getThreadState(i) == state: # em
                 continue
