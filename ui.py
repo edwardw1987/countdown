@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-27 14:07:04
+# @Last Modified time: 2016-07-27 14:16:41
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -249,8 +249,8 @@ class ClockSetDialog(After, wx.Dialog):
         # Layout with sizers
         sizer = wx.BoxSizer(wx.VERTICAL)
         # sizer.Add(about, 0, wx.ALL, 5)
-        sizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.ALL, 5)
         sizer.Add(self.getFlexGridSizer(), 0, wx.EXPAND | wx.ALL, 5)
+        sizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.ALL, 5)
         btns = wx.StdDialogButtonSizer()
         btns.AddButton(cancel)
         btns.AddButton(okay)
