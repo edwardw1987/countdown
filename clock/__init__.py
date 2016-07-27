@@ -2,13 +2,14 @@
 # @Author: edward
 # @Date:   2016-07-26 19:25:52
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-27 10:32:38
+# @Last Modified time: 2016-07-27 11:00:02
 from _bytes import src as AUDIO_SRC
 import os
 from wx.media import MediaCtrl
 
 
 class Clock(MediaCtrl):
+    # state: 0 stop 1 pause 2 play
     def setThread(self, thd):
         self._thread = thd
 

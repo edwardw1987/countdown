@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 12:30:24
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-25 22:37:40
+# @Last Modified time: 2016-07-27 12:17:19
 import wx
 
 
@@ -22,6 +22,8 @@ class After(object):
             'minsize',
             'enable',
             'handler',
+            'fgsCtrls',
+            'fgsCols',
         }
         for k in _keys:
             v = kw.pop(k, None)

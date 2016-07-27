@@ -2,12 +2,15 @@
 # @Author: edward
 # @Date:   2016-07-23 10:29:56
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-26 16:45:54
+# @Last Modified time: 2016-07-27 13:14:27
 from tinydb import TinyDB, Query
 import os
 
 DB_NAME = 'RATHAED_COUNTDOWN.json'
-def connect():
+def connect(tableName=None):
+    if tableName is not None:
+        db = TinyDB(DB_NAME)
+        return db.table(tableName)
     return TinyDB(DB_NAME)
 def insert(dictObj):
     with connect() as db:

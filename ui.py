@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-27 10:31:10
+# @Last Modified time: 2016-07-27 14:07:04
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -18,8 +18,11 @@ from event import CountEvent, EVT_COUNT, CountingThread
 
 class Label(After, wx.StaticText):
     pass
+
+
 class MenuItem(After, wx.MenuItem):
     pass
+
 
 class ListCtrl(After, wx.ListCtrl):
     def DoAfterInit(self):
@@ -32,6 +35,7 @@ class ListCtrl(After, wx.ListCtrl):
     def getThread(self, pos):
         eid = self.GetEid(pos)
         return self._threadPool.get(eid)
+
     def setThread(self, pos, thread):
         eid = self.GetEid(pos)
         self._threadPool[eid] = thread
@@ -44,14 +48,17 @@ class ListCtrl(After, wx.ListCtrl):
         pos, s = evt.GetValue()
         thd = self.getThread(pos)
         self.SetStringItem(pos, 3, '%d s' % s)
-        if s == 50:
-            fr = self.GetParent()
-            fr.clock.setThread(thd)
-            fr.clock.Play()
-            fr.Restore()
-        elif s == 0: # finish thread task
+        fr = self.GetParent()
+        if s == fr.getTriggerTime():
+            ck = fr.clock
+            if fr.IsIconized():
+                fr.Restore()
+            if ck.GetState() == 0:
+                fr.clock.setThread(thd)
+                fr.clock.Play()
+        elif s == 0:  # finish thread task
             self.toggleUI(pos)
-   
+
     def AddRows(self, data_list):
         for row in data_list:
             pos = self.InsertStringItem(self.GetItemCount(), str(row.eid))
@@ -108,9 +115,9 @@ class ListCtrl(After, wx.ListCtrl):
 
     def AdaptWidth(self, headings_num, proportions):
         num = sum(proportions)
+        _w = self.GetParent().GetClientSize()[0] / float(num)
         for i in range(headings_num):
-            w = self.GetParent().GetClientSize()[0] / float(num)
-            w *= proportions[i]
+            w = _w * proportions[i]
             self.SetColumnWidth(i, w)
 
     def onLeftDClick(self, e):
@@ -130,12 +137,16 @@ class ListCtrl(After, wx.ListCtrl):
                 # (u'修改', 'mod', 0, self.OnMod),
                 MenuItem(text=u'启动', id=-1, kind=0, handler=self.OnToggle, enable=state == 0 and self._pos >= 0)\
                 if state == 0 else \
-                MenuItem(text=u'停止', id=-1, kind=0, handler=self.OnToggle, enable=state == 1 and self._pos >= 0),
+                MenuItem(text=u'停止', id=-1, kind=0, handler=self.OnToggle,
+                         enable=state == 1 and self._pos >= 0),
                 -1,
-                MenuItem(text=u'全部启动', id=-1, kind=0, handler=self.OnStartAll, enable=not self.allStarted),
-                MenuItem(text=u'全部停止', id=-1, kind=0, handler=self.OnStopAll, enable=not self.allStopped),
+                MenuItem(text=u'全部启动', id=-1, kind=0,
+                         handler=self.OnStartAll, enable=not self.allStarted),
+                MenuItem(text=u'全部停止', id=-1, kind=0,
+                         handler=self.OnStopAll, enable=not self.allStopped),
                 -1,
-                MenuItem(text=u'删除', id=-1, kind=0, handler=self.OnDel, enable=self._pos >= 0 and state == 0),
+                MenuItem(text=u'删除', id=-1, kind=0, handler=self.OnDel,
+                         enable=self._pos >= 0 and state == 0),
             ]
         }
         for m, title in create_menu(self.GetParent(), data):
@@ -150,7 +161,8 @@ class ListCtrl(After, wx.ListCtrl):
     def cleanByPos(self, pos):
         e = self._cache.pop(pos)
         thd = self._threadPool.pop(e.eid, None)
-        if thd and not thd.stopped(): thd.stop()
+        if thd and not thd.stopped():
+            thd.stop()
         db.delete([e.eid])
 
     def DeleteItem(self, pos):
@@ -193,7 +205,7 @@ class ListCtrl(After, wx.ListCtrl):
         state = self.toggleThread(self._pos)
         fr = self.GetParent()
         thd_identified = self.getThread(self._pos) == fr.clock.getThread()
-        if state == 0 and thd_identified: # which thread to stop clock
+        if state == 0 and thd_identified:  # which thread to stop clock
             self.GetParent().clock.Stop()
         self.toggleUI(self._pos)
 
@@ -209,10 +221,56 @@ class ListCtrl(After, wx.ListCtrl):
             fr.clock.Stop()
 
         for i in range(self.GetItemCount()):
-            if self.getThreadState(i) == state: # em
+            if self.getThreadState(i) == state:  # em
                 continue
             self.toggleThread(i)
             self.toggleUI(i)
+
+
+FG_COLOR = '#485C80'
+
+
+class ClockSetDialog(After, wx.Dialog):
+    def OnOkay(self, e):
+        # val = self.fgs.GetItem(1).GetWindow().GetValue()
+        
+        val = self.FindWindowById(7878).GetValue()
+        config = db.connect(tableName='config')
+        config.insert({"triggerTime": val})
+        self.GetParent().setTriggerTime(val * 60)
+        self.Destroy()
+
+    def DoAfterInit(self):
+        # Use standard button IDs
+        okay = wx.Button(self, wx.ID_OK)
+        okay.Bind(wx.EVT_BUTTON, self.OnOkay)
+        okay.SetDefault()
+        cancel = wx.Button(self, wx.ID_CANCEL)
+        # Layout with sizers
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        # sizer.Add(about, 0, wx.ALL, 5)
+        sizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.ALL, 5)
+        sizer.Add(self.getFlexGridSizer(), 0, wx.EXPAND | wx.ALL, 5)
+        btns = wx.StdDialogButtonSizer()
+        btns.AddButton(cancel)
+        btns.AddButton(okay)
+        btns.Realize()
+        sizer.Add(btns, 0, wx.EXPAND | wx.ALL, 5)
+        self.SetSizer(sizer)
+        sizer.Fit(self)
+        self.Center()
+
+    def getFlexGridSizer(self):
+        ctrls = self.fgsCtrls
+        cols = self.fgsCols
+        rows = len(ctrls) / cols
+        self.fgs = fgs = wx.FlexGridSizer(rows, cols, 5, 5)
+        for cls, params, prop, flag in ctrls:
+            params['parent'] = self
+            fgs.Add(cls(**params), prop, flag)
+        fgs.AddGrowableCol(1)
+        return fgs
+
 
 class Dialog(After, wx.Dialog):
     def OnAdd(self):
@@ -229,18 +287,18 @@ class Dialog(After, wx.Dialog):
     def DoAfterInit(self):
         # self.panel = wx.Panel(self)
         sizer = wx.FlexGridSizer(5, 2)
-        fgcolor_val = '#485C80'
+
         ctrls = [
-            Label(self, label=u'BOSS名称', fgcolor=fgcolor_val),
+            Label(self, label=u'BOSS名称', fgcolor=FG_COLOR),
             wx.TextCtrl(self, style=wx.TE_CENTER, name='boss',
                         validator=NotEmptyValidator(
                             message=u"BOSS名称不能为空!",
                             from_window_callback=self.OnAdd,
                         ),
                         ),
-            Label(self, label=u'刷新间隔', fgcolor=fgcolor_val),
+            Label(self, label=u'刷新间隔', fgcolor=FG_COLOR),
             wx.SpinCtrl(self, style=wx.TE_CENTER, name='refresh'),
-            # Label(self, label=u'倒计时', fgcolor=fgcolor_val),
+            # Label(self, label=u'倒计时', fgcolor=FG_COLOR),
             # wx.SpinCtrl(self, style=wx.TE_CENTER, name='countdown'),
             None, None,
             wx.Button(self, wx.ID_CANCEL),
@@ -267,14 +325,17 @@ class Dialog(After, wx.Dialog):
         sizer.Add(wx.StaticLine(self), flag=(
             wx.TOP | wx.BOTTOM) | wx.EXPAND, border=border_val * 3)
         # sizer.AddStretchSpacer()
-        sizer.Add(ctrls[6], flag=wx.ALIGN_RIGHT|wx.LEFT|wx.BOTTOM, border=border_val)
-        sizer.Add(ctrls[7], flag=wx.ALIGN_RIGHT | wx.RIGHT|wx.BOTTOM, border=border_val)
+        sizer.Add(ctrls[6], flag=wx.ALIGN_RIGHT |
+                  wx.LEFT | wx.BOTTOM, border=border_val)
+        sizer.Add(ctrls[7], flag=wx.ALIGN_RIGHT |
+                  wx.RIGHT | wx.BOTTOM, border=border_val)
         proportion = 5
         sizer.AddGrowableCol(0, proportion)  # idx, proportion
         sizer.AddGrowableCol(1, 10 - proportion)
 
         self.SetSizer(sizer)
         sizer.Fit(self)
+
 
 class Frame(After, wx.Frame):
     def DoAfterInit(self):
@@ -285,11 +346,28 @@ class Frame(After, wx.Frame):
     def initAll(self):
         self._initMenuBar()
         self._initListCtrl()
+        self._initConfig()
         self._initOthers()
+
+    def _initConfig(self):
+        config = db.connect(tableName='config')
+        rows = config.all()
+        val = 10
+        if len(rows) > 0:
+            val = rows[-1]['triggerTime']
+        self._triggerTime = val * 60
+
+    def setTriggerTime(self, val):
+        self._triggerTime = val
+
+    def getTriggerTime(self, in_minute=False):
+        tt = self._triggerTime
+        return tt / 60 if in_minute else tt
 
     def _initOthers(self):
         self.Bind(wx.EVT_SIZE, self.OnResize)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
+
     def _initListCtrl(self):
         self.LC = ListCtrl(self,
                            style=wx.LC_REPORT,
@@ -321,6 +399,9 @@ class Frame(After, wx.Frame):
         _OD[u'查看(&V)'] = [
             MenuItem(text=u'窗口置顶', id=-1, kind=1, handler=self.OnSwitchTop),
         ]
+        _OD[u'设置(&S)'] = [
+            MenuItem(text=u'闹铃', id=-1, kind=0, handler=self.OnClockSet)
+        ]
 
         mb = create_menubar(self, _OD)
         # create item(normal, check, raido)
@@ -350,3 +431,14 @@ class Frame(After, wx.Frame):
         self.LC.cleanThreadOnClose()
         self.Destroy()
     OnQuit = OnClose
+
+    def OnClockSet(self, e):
+        dlg = ClockSetDialog(self, -1, u'闹铃设置',
+             fgsCtrls=[
+                 (Label, dict(label=u'闹铃触发', fgcolor=FG_COLOR), 0, 0,),
+                 (wx.SpinCtrl, dict(style=wx.TE_CENTER,
+                                    initial=self.getTriggerTime(True),
+                                    id=7878), 0, 0,)
+             ], fgsCols=2)
+
+        dlg.ShowModal()
