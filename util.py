@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 12:30:24
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-27 12:17:19
+# @Last Modified time: 2016-07-28 18:09:02
 import wx
 
 
@@ -24,6 +24,7 @@ class After(object):
             'handler',
             'fgsCtrls',
             'fgsCols',
+            'fgsCrowCols',
         }
         for k in _keys:
             v = kw.pop(k, None)

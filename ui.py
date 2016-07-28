@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-27 14:54:47
+# @Last Modified time: 2016-07-28 18:10:41
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -199,23 +199,35 @@ class ListCtrl(After, wx.ListCtrl):
                 # print 'stop'
         return state
 
-    def toggleUI(self, pos):
+    def toggleUI(self, pos, deadTime=None):
+        ref = self.GetRefresh(pos)
         state = self.getThreadState(pos)
+        if deadTime is not None:
+            now_dt = datetime.now()
+            dead_dt = datetime(now_dt.year, now_dt.month, now_dt.day, deadTime[0], deadTime[1]) 
+        else:
+            dead_dt = datetime.now()
+        refresh_dt = dead_dt + timedelta(seconds=60 * ref)
+        
         self.SetStringItem(
             pos, 5, u'已启动' if state else u'已停止')
         self.SetStringItem(
-            pos, 2, datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S') if state else u'0000-00-00 00:00:00')
-        ref = self.GetRefresh(pos)
+            pos, 2, datetime.strftime(dead_dt, '%Y-%m-%d %H:%M:%S') if state else u'0000-00-00 00:00:00')
         self.SetStringItem(
-            pos, 4, datetime.strftime(datetime.now() + timedelta(seconds=60 * ref), '%Y-%m-%d %H:%M:%S') if state else '%d min' % ref)
+            pos, 4, datetime.strftime(refresh_dt, '%Y-%m-%d %H:%M:%S') if state else '%d min' % ref)
 
     def OnToggle(self, e):
+        dead_time = None
+        if self.getThreadState(self._pos) == 0:
+            dead_time = self.GetParent().getDeadTime()
+            if dead_time is None:
+                return 
         state = self.toggleThread(self._pos)
         fr = self.GetParent()
         thd_identified = self.getThread(self._pos) == fr.clock.getThread()
         if state == 0 and thd_identified:  # which thread to stop clock
             self.GetParent().clock.Stop()
-        self.toggleUI(self._pos)
+        self.toggleUI(self._pos, dead_time)
 
     def OnStartAll(self, e):
         self._toggleAll(state=1)
@@ -236,7 +248,6 @@ class ListCtrl(After, wx.ListCtrl):
 
 
 FG_COLOR = '#485C80'
-
 
 class ClockSetDialog(After, wx.Dialog):
     def OnOkay(self, e):
@@ -271,14 +282,24 @@ class ClockSetDialog(After, wx.Dialog):
     def getFlexGridSizer(self):
         ctrls = self.fgsCtrls
         cols = self.fgsCols
-        rows = len(ctrls) / cols
+        growCols = self.fgsCrowCols or []
+        rows = len(ctrls) / float(cols)
+        rows = rows if int(rows) == rows else rows + 1
         self.fgs = fgs = wx.FlexGridSizer(rows, cols, 5, 5)
-        for cls, params, prop, flag in ctrls:
+        for cls, params, prop, flag, border in ctrls:
             params['parent'] = self
-            fgs.Add(cls(**params), prop, flag)
-        fgs.AddGrowableCol(1)
+            fgs.Add(cls(**params), prop, flag, border)
+        for idx, prop in growCols:
+            fgs.AddGrowableCol(idx, prop)
         return fgs
 
+class DeadTimeSetDialog(ClockSetDialog):
+    def OnOkay(self, e):
+        hour = self.FindWindowById(7979).GetValue()
+        minute = self.FindWindowById(7980).GetValue()
+        self.GetParent()._deadTime = hour, minute
+        print hour, minute
+        self.Destroy()
 
 class Dialog(After, wx.Dialog):
     def OnAdd(self):
@@ -443,10 +464,34 @@ class Frame(After, wx.Frame):
     def OnClockSet(self, e):
         dlg = ClockSetDialog(self, -1, u'闹铃设置',
              fgsCtrls=[
-                 (Label, dict(label=u'闹铃触发', fgcolor=FG_COLOR), 0, 0,),
+                 (Label, dict(label=u'闹铃触发', fgcolor=FG_COLOR), 0, 0, 0),
                  (wx.SpinCtrl, dict(style=wx.TE_CENTER,
                                     initial=self.getTriggerTime(True),
-                                    id=7878), 0, 0,)
+                                    id=7878), 0, 0, 0)
              ], fgsCols=2)
 
         dlg.ShowModal()
+    def getDeadTime(self):
+        self._initDeadTime()
+        r = getattr(self, '_deadTime', None)
+        if r: del self._deadTime
+        return r
+
+    def _initDeadTime(self):
+        dt = datetime.now()
+        dlg = DeadTimeSetDialog(self, 9999, u'设置BOSS死亡时间',
+             fgsCtrls=[
+                 (wx.SpinCtrl, dict(style=wx.TE_CENTER,
+                                    initial=dt.hour,
+                                    min=0, max=23,
+                                    size=(60,-1),
+                                    id=7979), 0, wx.ALIGN_RIGHT|wx.RIGHT, 10),
+                 (Label, dict(label=u':', fgcolor=FG_COLOR), 0, wx.ALIGN_CENTER, 0),
+                 (wx.SpinCtrl, dict(style=wx.TE_CENTER,
+                                    size=(60,-1),
+                                    initial=dt.minute,
+                                    min=0, max=59,
+                                    id=7980), 0, wx.ALIGN_LEFT|wx.LEFT, 10),
+             ], fgsCols=3, fgsCrowCols=[(0, 2), (1, 1), (2, 2)])
+        signal = dlg.ShowModal()
+
