@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-28 18:59:32
+# @Last Modified time: 2016-07-28 19:12:11
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -50,7 +50,7 @@ class ListCtrl(After, wx.ListCtrl):
         if not thd.stopped():
             self.SetStringItem(pos, 3, '%d s' % s)
         fr = self.GetParent()
-        if s == fr.getTriggerTime():
+        if s in {fr.getTriggerTime(), 30}:
             ck = fr.clock
             if fr.IsIconized():
                 fr.Restore()
