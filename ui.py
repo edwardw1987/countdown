@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-28 18:10:41
+# @Last Modified time: 2016-07-28 18:45:33
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -47,7 +47,8 @@ class ListCtrl(After, wx.ListCtrl):
     def OnCount(self, evt):
         pos, s = evt.GetValue()
         thd = self.getThread(pos)
-        self.SetStringItem(pos, 3, '%d s' % s)
+        if not thd.stopped():
+            self.SetStringItem(pos, 3, '%d s' % s)
         fr = self.GetParent()
         if s == fr.getTriggerTime():
             ck = fr.clock
