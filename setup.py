@@ -27,5 +27,5 @@ zipfile=None,
 # windows = [{"script":"freess.py", "icon_resources": [(1, "godusevpn.ico")]} ]
 # data_files= [('images', ['godusevpn.png'])],
 windows=[{"script":"countdown.py",
-          "icon_resources": [(1,"rat_head.ico"), (2,"rat_head16.ico")]}]  
+          "icon_resources": [(1,"rat_head.ico")]}]  
 )

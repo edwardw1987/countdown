@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-28 19:12:11
+# @Last Modified time: 2016-07-28 21:07:34
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -66,6 +66,7 @@ class ListCtrl(After, wx.ListCtrl):
                 dlg.ShowModal()
                 ck.Stop()
         elif s == 0:  # finish thread task
+            self.SetStringItem(pos, 3, '%d s' % s)
             self.toggleUI(pos)
 
     def AddRows(self, data_list):

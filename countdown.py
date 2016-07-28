@@ -43,7 +43,7 @@ class App(wx.App):
 
 
 def main():
-    app = App(test_version=True)
+    app = App(test_version=False)
     app.MainLoop()
 if __name__ == '__main__':
     main()
