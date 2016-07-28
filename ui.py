@@ -2,7 +2,7 @@
 # @Author: edward
 # @Date:   2016-07-22 14:35:41
 # @Last Modified by:   edward
-# @Last Modified time: 2016-07-28 18:45:33
+# @Last Modified time: 2016-07-28 18:59:32
 import wx
 from util import After, create_menubar, create_menu
 from validator import NotEmptyValidator
@@ -283,7 +283,7 @@ class ClockSetDialog(After, wx.Dialog):
     def getFlexGridSizer(self):
         ctrls = self.fgsCtrls
         cols = self.fgsCols
-        growCols = self.fgsCrowCols or []
+        growCols = self.fgsGrowCols or []
         rows = len(ctrls) / float(cols)
         rows = rows if int(rows) == rows else rows + 1
         self.fgs = fgs = wx.FlexGridSizer(rows, cols, 5, 5)
@@ -493,6 +493,6 @@ class Frame(After, wx.Frame):
                                     initial=dt.minute,
                                     min=0, max=59,
                                     id=7980), 0, wx.ALIGN_LEFT|wx.LEFT, 10),
-             ], fgsCols=3, fgsCrowCols=[(0, 2), (1, 1), (2, 2)])
+             ], fgsCols=3, fgsGrowCols=[(0, 2), (1, 1), (2, 2)])
         signal = dlg.ShowModal()
 
